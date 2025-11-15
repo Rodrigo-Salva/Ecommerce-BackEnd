@@ -9,8 +9,10 @@ from .serializers import (
     CartSerializer, CartItemSerializer, CartItemCreateSerializer,
     CartItemUpdateSerializer, WishlistSerializer, WishlistCreateSerializer
 )
+from drf_spectacular.utils import extend_schema
 from applications.products.models import Product
 
+@extend_schema(tags=['Cart'])
 class CartViewSet(viewsets.ViewSet):
     """ViewSet para gestionar el carrito"""
     
@@ -116,6 +118,7 @@ class CartViewSet(viewsets.ViewSet):
             "cart_items_count": 0
         })
 
+@extend_schema(tags=['Cart'])
 class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [IsAuthenticated]

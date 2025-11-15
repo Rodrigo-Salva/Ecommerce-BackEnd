@@ -12,6 +12,8 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 
 from .models import UserProfile, Address
 from .serializers import (
@@ -25,7 +27,7 @@ from .serializers import (
 )
 from .permissions import IsOwner, IsOwnerOrAdmin
 
-
+@extend_schema(tags=['Users'])
 class UserRegistrationAPIView(generics.CreateAPIView):
     """
     Endpoint para registro de nuevos usuarios
@@ -73,6 +75,7 @@ class UserRegistrationAPIView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(tags=['Users'])
 class UserProfileViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de perfil de usuario
@@ -120,6 +123,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         )
 
 
+@extend_schema(tags=['Users'])
 class ChangePasswordAPIView(generics.UpdateAPIView):
     """
     Endpoint para cambiar contraseña
@@ -138,6 +142,7 @@ class ChangePasswordAPIView(generics.UpdateAPIView):
         }, status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=['Users'])
 class PasswordResetRequestAPIView(generics.GenericAPIView):
     """
     Solicitar reset de contraseña por email
@@ -183,6 +188,7 @@ class PasswordResetRequestAPIView(generics.GenericAPIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(tags=['Users'])
 class PasswordResetConfirmAPIView(generics.GenericAPIView):
     """
     Confirmar reset de contraseña con token
@@ -220,7 +226,7 @@ class PasswordResetConfirmAPIView(generics.GenericAPIView):
             'message': 'Contraseña restablecida exitosamente'
         }, status=status.HTTP_200_OK)
 
-
+@extend_schema(tags=['Users'])
 class AddressViewSet(viewsets.ModelViewSet):
     """
     CRUD completo para direcciones del usuario

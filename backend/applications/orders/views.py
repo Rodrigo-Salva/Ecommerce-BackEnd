@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 import io
+from drf_spectacular.utils import extend_schema
 
 from .models import Order, Coupon
 from .serializers import (
@@ -14,6 +15,7 @@ from .serializers import (
 from .permissions import IsOwner
 from .utils import get_user_orders
 
+@extend_schema(tags=['Orders'])
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
     serializer_class = OrderListSerializer
@@ -71,6 +73,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         buffer.seek(0)
         return HttpResponse(buffer, content_type='application/pdf')
 
+@extend_schema(tags=['Orders'])
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def validate_coupon(request):
