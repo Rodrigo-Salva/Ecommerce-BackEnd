@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     'applications.orders',
     'applications.users',
     'applications.cart',
+
+    # API schema & docs
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -60,11 +63,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOW_ALL_ORIGINS = True
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -76,6 +75,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # JWT Settings
@@ -114,7 +114,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ecomerse_muebles',
         'USER': 'postgres',
-        'PASSWORD': 'Lopez2003',
+        'PASSWORD': '28demarzo',
         'HOST': 'localhost',
         'PORT': '5432',
     }
