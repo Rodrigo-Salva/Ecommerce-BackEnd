@@ -1,27 +1,34 @@
 from django.db import models
 from django.contrib.auth.models import User
 from applications.products.models import Product
+import uuid
+
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pendiente'),
-        ('confirmed', 'Confirmado'),
-        ('processing', 'En Preparación'),
-        ('shipped', 'Enviado'),
-        ('in_transit', 'En Tránsito'),
-        ('delivered', 'Entregado'),
-        ('cancelled', 'Cancelado'),
-        ('refunded', 'Reembolsado'),
-    ]
-    PAYMENT_CHOICES = [
-        ('credit_card', 'Tarjeta de Crédito'),
-        ('debit_card', 'Tarjeta de Débito'),
-        ('transfer', 'Transferencia Bancaria'),
-        ('cash', 'Efectivo en Entrega'),
+        ("pending", "Pendiente"),
+        ("confirmed", "Confirmado"),
+        ("processing", "En Preparación"),
+        ("shipped", "Enviado"),
+        ("in_transit", "En Tránsito"),
+        ("delivered", "Entregado"),
+        ("cancelled", "Cancelado"),
+        ("refunded", "Reembolsado"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name='Usuario')
-    order_number = models.CharField(max_length=32, unique=True, verbose_name='Nº Orden')
+    PAYMENT_CHOICES = [
+        ("credit_card", "Tarjeta de Crédito"),
+        ("debit_card", "Tarjeta de Débito"),
+        ("transfer", "Transferencia Bancaria"),
+        ("cash", "Efectivo en Entrega"),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="orders", verbose_name="Usuario"
+    )
+    order_number = models.CharField(
+        max_length=32, unique=True, verbose_name="Nº Orden", blank=True
+    )
     full_name = models.CharField(max_length=100)
     email = models.EmailField()
     phone = models.CharField(max_length=30)
@@ -31,13 +38,18 @@ class Order(models.Model):
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=50)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # IMPORTANTE: defaults para evitar errores
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_cost = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='credit_card')
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_CHOICES, default="credit_card"
+    )
     payment_id = models.CharField(max_length=100, blank=True, null=True)
     is_paid = models.BooleanField(default=False)
     paid_at = models.DateTimeField(blank=True, null=True)
@@ -45,26 +57,58 @@ class Order(models.Model):
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     estimated_delivery = models.DateField(blank=True, null=True)
     delivered_at = models.DateTimeField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Orden'
-        verbose_name_plural = 'Órdenes'
-        ordering = ['-created_at']
+        verbose_name = "Orden"
+        verbose_name_plural = "Órdenes"
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"Orden {self.order_number} - {self.user.username}"
 
+    def calculate_totals(self):
+        """Cálculo completo del subtotal y total."""
+        items = self.items.all()
+        subtotal = sum([item.product_price * item.quantity for item in items])
+
+        self.subtotal = subtotal
+
+        self.total = (
+            subtotal
+            - (self.discount or 0)
+            + (self.shipping_cost or 0)
+            + (self.tax or 0)
+        )
+
     def save(self, *args, **kwargs):
+        # Si la orden aún no tiene número, generarlo
         if not self.order_number:
-            import uuid
             self.order_number = f"ORD-{uuid.uuid4().hex[:10].upper()}"
-        super().save(*args, **kwargs)
+
+        # Primer guardado: si no tiene PK, guárdalo primero
+        if not self.pk:
+            super().save(*args, **kwargs)
+
+        # Recalcular totales si la orden ya existe
+        self.calculate_totals()
+
+        return super().save(*args, **kwargs)
+
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Orden')
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Producto')
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="items", verbose_name="Orden"
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Producto",
+    )
     product_name = models.CharField(max_length=255)
     product_sku = models.CharField(max_length=100, blank=True)
     product_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -73,31 +117,41 @@ class OrderItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = 'Item de Orden'
-        verbose_name_plural = 'Items de Orden'
-        ordering = ['-created_at']
+        verbose_name = "Item de Orden"
+        verbose_name_plural = "Items de Orden"
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.quantity}x {self.product_name} ({self.order.order_number})"
 
+
 class OrderStatusHistory(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='history')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="history")
     status = models.CharField(max_length=20)
     comment = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = 'Historial de Estado'
-        verbose_name_plural = 'Historiales de Estado'
-        ordering = ['-created_at']
+        verbose_name = "Historial de Estado"
+        verbose_name_plural = "Historiales de Estado"
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.status} - {self.order.order_number}"
 
+
 class Coupon(models.Model):
     code = models.CharField(max_length=30, unique=True)
-    discount_type = models.CharField(max_length=10, choices=[('percent', 'Porcentaje'), ('amount', 'Monto')])
+    discount_type = models.CharField(
+        max_length=10,
+        choices=[
+            ("percent", "Porcentaje"),
+            ("amount", "Monto"),
+        ],
+    )
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
