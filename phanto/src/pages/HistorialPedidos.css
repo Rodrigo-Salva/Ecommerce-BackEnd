@@ -1,0 +1,162 @@
+/* src/pages/HistorialPedidos.css */
+
+.historial-pedidos {
+  padding: 40px 24px 80px;
+  min-height: 100vh;
+  background: var(--background);
+}
+
+/* Título principal */
+.historial-titulo {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+/* Contenedor listado */
+.pedidos-lista {
+  background: var(--white);
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  padding: 36px 32px;
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+/* Cada pedido */
+.pedido-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.pedido-item:last-child {
+  border-bottom: none;
+}
+
+/* Número y fecha */
+.pedido-numero {
+  font-weight: 700;
+  font-size: 1.08rem;
+  color: var(--primary-color);
+  letter-spacing: 0.5px;
+}
+
+.pedido-fecha {
+  color: var(--text-light);
+  font-size: 0.98rem;
+  margin-left: 20px;
+}
+
+/* Estado con badge */
+.pedido-estado {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: capitalize;
+  border-radius: 16px;
+  padding: 4px 16px;
+  background: var(--background);
+  margin-right: 14px;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Alterna según status */
+.pedido-estado.processing,
+.pedido-estado.en\ preparaci\u00f3n {
+  background: #fff2cc;
+  color: #b48107;
+}
+.pedido-estado.shipped,
+.pedido-estado.enviado,
+.pedido-estado.in_transit,
+.pedido-estado.en\ tr\u00e1nsito {
+  background: #e4f1fe;
+  color: #217dbb;
+}
+.pedido-estado.delivered,
+.pedido-estado.entregado {
+  background: #e5fbb6;
+  color: #318e1d;
+}
+.pedido-estado.cancelled,
+.pedido-estado.cancelado {
+  background: #ffe6e6;
+  color: #bf0303;
+}
+
+/* Precio total destacado */
+.pedido-precio {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 1.12rem;
+}
+
+/* Link/acciones */
+.pedido-link {
+  color: var(--secondary-color);
+  font-weight: 500;
+  font-size: 0.96rem;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.pedido-link:hover {
+  color: var(--primary-color);
+}
+
+/* Mensaje vacío elegante */
+.sin-pedidos {
+  padding: 38px 18px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .pedidos-lista {
+    padding: 18px 8px;
+    border-radius: 12px;
+  }
+  .historial-titulo {
+    font-size: 1.35rem;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .pedido-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 18px 0;
+  }
+  .pedido-estado {
+    margin-right: 0;
+    margin-top: 4px;
+  }
+}
+
+/* Opcional: animación aparecer */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.historial-pedidos,
+.pedidos-lista,
+.pedido-item {
+  animation: fadeInUp 0.6s;
+}
