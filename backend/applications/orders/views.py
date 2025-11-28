@@ -6,6 +6,9 @@ from django.utils import timezone
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 import io
+import stripe
+from django.conf import settings
+from drf_spectacular.utils import extend_schema
 
 from .models import Order, Coupon
 from .serializers import (
@@ -14,6 +17,11 @@ from .serializers import (
 from .permissions import IsOwner
 from .utils import get_user_orders
 
+# Config Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+@extend_schema(tags=['Orders'])
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
     serializer_class = OrderListSerializer
@@ -21,8 +29,10 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if not user.is_authenticated:
+            return Order.objects.none()
         return Order.objects.filter(user=user).order_by('-created_at')
-    
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return OrderDetailSerializer
@@ -65,12 +75,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             p.drawString(100, y, f"{item.product_name[:15]:<15}{item.quantity:<10}{item.product_price:<8}")
             y -= 18
         p.setFont("Helvetica-Bold", 12)
-        p.drawString(100, y-10, f"Total: S/ {order.total}")
+        p.drawString(100, y - 10, f"Total: S/ {order.total}")
         p.showPage()
         p.save()
         buffer.seek(0)
         return HttpResponse(buffer, content_type='application/pdf')
 
+
+@extend_schema(tags=['Orders'])
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def validate_coupon(request):
@@ -84,3 +96,73 @@ def validate_coupon(request):
         })
     except Coupon.DoesNotExist:
         return Response({"valid": False, "discount": "0"})
+
+
+@extend_schema(tags=['Payments'])
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_payment_intent(request):
+    """
+    Crea un PaymentIntent de Stripe.
+    Body: { "amount": 20000 }  # centavos
+    """
+    try:
+        amount = int(request.data.get('amount'))
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency='pen',
+            automatic_payment_methods={"enabled": True},
+            metadata={
+                "user_id": request.user.id,
+                "username": request.user.username,
+            },
+        )
+        return Response(
+            {"clientSecret": intent.client_secret, "paymentIntentId": intent.id},
+            status=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(tags=['Payments'])
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def confirm_payment(request):
+    """
+    Confirma el pago y crea la orden.
+    Espera:
+    {
+        "payment_intent_id": "pi_...",
+        "order": { ...datos para OrderCreateSerializer... }
+    }
+    """
+    try:
+        payment_intent_id = request.data.get('payment_intent_id')
+        order_data = request.data.get('order', {})
+
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+
+        if intent.status != 'succeeded':
+            return Response({"error": "Pago no completado"}, status=status.HTTP_400_BAD_REQUEST)
+
+        order_data['is_paid'] = True
+        order_data['payment_method'] = 'stripe'
+        order_data['payment_intent_id'] = payment_intent_id
+
+        serializer = OrderCreateSerializer(data=order_data, context={'request': request})
+        if serializer.is_valid():
+            order = serializer.save()
+            return Response(
+                {
+                    "message": "Orden creada exitosamente",
+                    "order_number": order.order_number,
+                    "order": OrderDetailSerializer(order).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

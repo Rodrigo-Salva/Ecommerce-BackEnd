@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../services/api';
-import { useCart as useCartAPI } from '../hooks/useCart';
+import { useCart } from '../context/CartContext';
 import { useProductDetail, useProducts } from '../hooks/useProducts';
 import './DetalleProducto.css';
 
 const DetalleProducto = () => {
   const { slugOrId } = useParams();
   const navigate = useNavigate();
-  const { addItemAsync, isAddingItem } = useCartAPI();
+  const { addItemAsync, isAddingItem } = useCart();
   const [cantidad, setCantidad] = useState(1);
   const [agregadoAlCarrito, setAgregadoAlCarrito] = useState(false);
 

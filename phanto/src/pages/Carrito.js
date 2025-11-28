@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../context/CartContext';
 import { API_URL, productAPI } from '../services/api';
-import { usePedidosEnEntrega } from '../hooks/usePedidosEnEntrega';
-import { usePedidosCompletados } from '../hooks/usePedidosCompletados';
 import './Carrito.css';
 
 const Carrito = () => {
@@ -21,9 +19,6 @@ const Carrito = () => {
     isClearingCart
   } = useCart();
 
-  const { enEntrega = [], isLoading: loadingEntrega } = usePedidosEnEntrega();
-  const { completados = [], isLoading: loadingCompletados } = usePedidosCompletados();
-
   const handleProductHover = (slug) => {
     if (!slug) return;
     queryClient.prefetchQuery({
@@ -35,6 +30,7 @@ const Carrito = () => {
 
   const handleCantidadChange = (itemId, currentQuantity, change) => {
     const newQuantity = currentQuantity + change;
+    
     if (newQuantity <= 0) {
       removeItem(itemId);
     } else {
@@ -51,51 +47,6 @@ const Carrito = () => {
   const handleClearCart = () => {
     if (window.confirm('¿Estás seguro de vaciar todo el carrito?')) {
       clearCart();
-    }
-  };
-
-  // ------ PROCESO DE CHECKOUT -------
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState('');
-
-  const handleCheckout = async () => {
-    setCheckoutLoading(true);
-    setCheckoutError('');
-    const user = JSON.parse(localStorage.getItem('user'));
-    const items = cart?.items?.map(item => ({
-      product_id: item.product?.id,
-      quantity: item.quantity
-    })) || [];
-    const body = {
-      full_name: user?.first_name + ' ' + user?.last_name,
-      email: user?.email,
-      phone: user?.phone || '',
-      address_line1: user?.default_address_line1 || 'Sin dirección',
-      address_line2: user?.default_address_line2 || '',
-      city: user?.default_city || '',
-      state: user?.default_state || '',
-      postal_code: user?.default_postal_code || '',
-      country: user?.default_country || '',
-      order_notes: '',
-      items
-    };
-    try {
-      const resp = await fetch('http://127.0.0.1:8000/api/orders/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body)
-      });
-      if (!resp.ok) {
-        const errorData = await resp.json();
-        throw new Error(errorData.error || 'Error al crear la orden');
-      }
-      clearCart();
-      window.location.href = '/historial';
-    } catch (err) {
-      setCheckoutError(err.message);
-    } finally {
-      setCheckoutLoading(false);
     }
   };
 
@@ -129,11 +80,7 @@ const Carrito = () => {
   const cartItems = cart?.items || [];
   const totalPrice = parseFloat(cart?.total_price || 0);
 
-  // ------ Si el carrito está vacío, muestra mensaje dinámico con historial ------
   if (cartItems.length === 0) {
-    const pedidosEnCurso = enEntrega.length;
-    const pedidosCompletados = completados.length;
-    const tienePedidos = pedidosEnCurso > 0 || pedidosCompletados > 0;
     return (
       <div className="carrito-vacio">
         <div className="container">
@@ -143,19 +90,8 @@ const Carrito = () => {
               <circle cx="20" cy="21" r="1"/>
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
             </svg>
-            <h2>Inicia tu próxima compra</h2>
-            {loadingEntrega || loadingCompletados ? (
-              <p>Cargando tu historial...</p>
-            ) : tienePedidos ? (
-              <p>
-                Tu historial: {pedidosCompletados} pedido{pedidosCompletados !== 1 ? 's' : ''} completado{pedidosCompletados !== 1 ? 's' : ''}, {pedidosEnCurso} en curso.
-              </p>
-            ) : (
-              <p>No tienes pedidos activos. Empieza comprando productos increíbles.</p>
-            )}
-            <Link to="/historial" className="btn btn-primary">
-              Ver historial de pedidos
-            </Link>
+            <h2>Tu carrito está vacío</h2>
+            <p>Agrega productos increíbles para comenzar tu compra</p>
             <Link to="/" className="btn btn-primary">
               Explorar Productos
             </Link>
@@ -164,7 +100,6 @@ const Carrito = () => {
       </div>
     );
   }
-  // --------------------------------------------------------------------
 
   return (
     <div className="carrito-page fade-in">
@@ -183,6 +118,7 @@ const Carrito = () => {
             {isClearingCart ? 'Vaciando...' : 'Vaciar Carrito'}
           </button>
         </div>
+
         <div className="carrito-grid">
           <div className="carrito-items">
             {cartItems.map((item) => {
@@ -190,6 +126,7 @@ const Carrito = () => {
               const precio = parseFloat(producto.final_price || producto.price || 0);
               const cantidad = item.quantity || 1;
               const itemId = item.id;
+
               return (
                 <div key={itemId} className="carrito-item">
                   <Link
@@ -213,6 +150,7 @@ const Carrito = () => {
                       </div>
                     )}
                   </Link>
+
                   <div className="item-info">
                     <Link
                       to={`/producto/${producto.slug || producto.id}`}
@@ -224,6 +162,7 @@ const Carrito = () => {
                     <p className="item-categoria">{producto.category?.name}</p>
                     <p className="item-precio-unitario">${precio.toFixed(2)} c/u</p>
                   </div>
+
                   <div className="item-cantidad">
                     <button
                       className="cantidad-btn-carrito"
@@ -241,9 +180,11 @@ const Carrito = () => {
                       +
                     </button>
                   </div>
+
                   <div className="item-precio-total">
                     ${(precio * cantidad).toFixed(2)}
                   </div>
+
                   <button
                     className="item-eliminar"
                     onClick={() => handleRemoveItem(itemId)}
@@ -259,8 +200,10 @@ const Carrito = () => {
               );
             })}
           </div>
+
           <div className="carrito-resumen">
             <h3 className="resumen-titulo">Resumen del Pedido</h3>
+
             <div className="resumen-detalles">
               <div className="resumen-linea">
                 <span>Subtotal ({cart?.total_items || 0} productos)</span>
@@ -286,21 +229,19 @@ const Carrito = () => {
                 <span>${(totalPrice + (totalPrice >= 1000 ? 0 : 50)).toFixed(2)}</span>
               </div>
             </div>
-            <button
-              className="btn-finalizar"
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? 'Procesando...' : 'Finalizar compra'}
+
+            <button className="btn-finalizar">
+              Proceder al Pago
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M5 12h14"/>
                 <path d="M12 5l7 7-7 7"/>
               </svg>
             </button>
-            {checkoutError && <div className="error-message">{checkoutError}</div>}
+
             <Link to="/" className="btn-continuar">
               Continuar Comprando
             </Link>
+
             <div className="garantias">
               <div className="garantia-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

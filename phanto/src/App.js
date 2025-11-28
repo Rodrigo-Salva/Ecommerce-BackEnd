@@ -8,7 +8,6 @@ import Categorias from './pages/Categorias';
 import ProductosPorCategoria from './pages/ProductosPorCategoria';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import HistorialPedidos from './pages/HistorialPedidos'; // <--- Importa el historial aquí
 
 function App() {
   return (
@@ -23,7 +22,6 @@ function App() {
           <Route path="/categoria/:slug" element={<ProductosPorCategoria />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/historial" element={<HistorialPedidos />} /> {/* <--- Agregar ruta */}
         </Routes>
       </div>
     </Router>

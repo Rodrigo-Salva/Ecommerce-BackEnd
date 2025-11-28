@@ -2,7 +2,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartAPI } from '../services/api';
 
-export const useCart = () => {
+const CART_ID_KEY = 'ecommerce_cart_id';
+
+export const useCartAPI = () => {
   const queryClient = useQueryClient();
 
   // Query: Obtener carrito
@@ -11,12 +13,19 @@ export const useCart = () => {
     queryFn: async () => {
       const data = await cartAPI.get();
       console.log('📦 Carrito cargado:', data);
+      
+      // Guardar el cart_id en localStorage para futuras sincronizaciones
+      if (data && data.id) {
+        localStorage.setItem(CART_ID_KEY, data.id.toString());
+      }
+      
       return data;
     },
-    staleTime: 0, // Siempre considerar los datos como obsoletos
-    cacheTime: 1000 * 60 * 5, // Mantener en caché 5 minutos
-    refetchOnMount: 'always', // Siempre refetch al montar
-    refetchOnWindowFocus: true, // Refetch al volver a la ventana
+    staleTime: 1000 * 60 * 5, // Cache 5 minutos (no siempre considerar obsoleto)
+    cacheTime: 1000 * 60 * 10, // Mantener en caché 10 minutos
+    refetchOnMount: false, // NO refetch automáticamente al montar
+    refetchOnWindowFocus: false, // NO refetch al volver a la ventana
+    refetchOnReconnect: true, // Refetch si reconecta
   });
 
   // Mutation: Agregar producto al carrito
@@ -26,12 +35,29 @@ export const useCart = () => {
       return cartAPI.addItem(productId, quantity);
     },
     
-    onSuccess: async (data) => {
+    onSuccess: (data) => {
       console.log('✅ Producto agregado exitosamente:', data);
-      // Invalidar Y refetch inmediato del carrito
-      await queryClient.invalidateQueries({ queryKey: ['cart'] });
-      await queryClient.refetchQueries({ queryKey: ['cart'] });
-      console.log('🔄 Carrito refrescado');
+      
+      // Actualizar el carrito localmente con los datos de la respuesta
+      if (data && data.item) {
+        queryClient.setQueryData(['cart'], (old) => {
+          if (!old) return old;
+          
+          // Verificar si el item ya existe
+          const itemExists = old.items.some(i => i.id === data.item.id);
+          
+          return {
+            ...old,
+            items: itemExists 
+              ? old.items.map(i => i.id === data.item.id ? data.item : i)
+              : [...old.items, data.item],
+            total_items: data.cart_items_count,
+            total_price: data.cart_total,
+          };
+        });
+      }
+      
+      console.log('🔄 Carrito actualizado localmente');
     },
     
     onError: (err) => {
@@ -70,9 +96,11 @@ export const useCart = () => {
       console.error('Error al actualizar cantidad:', err);
     },
     
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['cart'] });
-      await queryClient.refetchQueries({ queryKey: ['cart'] });
+    onSuccess: (data) => {
+      // La respuesta contiene el carrito actualizado
+      if (data && data.cart) {
+        queryClient.setQueryData(['cart'], data.cart);
+      }
     },
   });
 
@@ -102,9 +130,11 @@ export const useCart = () => {
       console.error('Error al eliminar producto:', err);
     },
     
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['cart'] });
-      await queryClient.refetchQueries({ queryKey: ['cart'] });
+    onSuccess: (data) => {
+      // La respuesta contiene el carrito actualizado
+      if (data && data.cart) {
+        queryClient.setQueryData(['cart'], data.cart);
+      }
     },
   });
 
@@ -131,9 +161,11 @@ export const useCart = () => {
       console.error('Error al vaciar carrito:', err);
     },
     
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['cart'] });
-      await queryClient.refetchQueries({ queryKey: ['cart'] });
+    onSuccess: (data) => {
+      // La respuesta contiene el carrito actualizado
+      if (data && data.cart) {
+        queryClient.setQueryData(['cart'], data.cart);
+      }
     },
   });
 

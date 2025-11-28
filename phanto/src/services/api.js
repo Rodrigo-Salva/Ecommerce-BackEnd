@@ -1,20 +1,24 @@
+// src/services/api.js
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // Función helper para hacer peticiones
 const fetchAPI = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-
+  
   try {
     const response = await fetch(url, {
+      credentials: 'include', // Enviar cookies (incluyendo sessionid)
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      credentials: 'include',      // >>> Esta línea es vital para TODAS las peticiones
       ...options,
     });
 
-    if (response.status === 204) return null;
+    // Si es 204 No Content, no intentar parsear JSON
+    if (response.status === 204) {
+      return null;
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -37,23 +41,32 @@ export const productAPI = {
   // GET /api/products/ - Lista con filtros y paginación
   getAll: async (params = {}) => {
     const queryParams = new URLSearchParams();
+    
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
         queryParams.append(key, params[key]);
       }
     });
-
+    
     const queryString = queryParams.toString();
     const endpoint = `/api/products/${queryString ? `?${queryString}` : ''}`;
-
-    return fetchAPI(endpoint);
+    
+    const data = await fetchAPI(endpoint);
+    // Normalizar respuesta: si tiene "results", devolver eso; si no, devolver directamente
+    return data.results || data || [];
   },
 
   // GET /api/products/{slug}/ - Detalle completo
-  getBySlug: async (slug) => fetchAPI(`/api/products/${slug}/`),
+  getBySlug: async (slug) => {
+    return fetchAPI(`/api/products/${slug}/`);
+  },
 
   // GET /api/products/{slug}/related/ - Productos relacionados
-  getRelated: async (slug) => fetchAPI(`/api/products/${slug}/related/`),
+  getRelated: async (slug) => {
+    const data = await fetchAPI(`/api/products/${slug}/related/`);
+    // Normalizar respuesta
+    return data.results || data || [];
+  },
 };
 
 // ============================================
@@ -62,13 +75,23 @@ export const productAPI = {
 
 export const categoryAPI = {
   // GET /api/products/categories/ - Lista todas las categorías
-  getAll: async () => fetchAPI('/api/products/categories/'),
+  getAll: async () => {
+    const data = await fetchAPI('/api/products/categories/');
+    // Normalizar respuesta: si tiene "results", devolver eso; si no, devolver el array directo
+    return data.results || data || [];
+  },
 
   // GET /api/products/categories/{slug}/ - Detalle de categoría
-  getBySlug: async (slug) => fetchAPI(`/api/products/categories/${slug}/`),
+  getBySlug: async (slug) => {
+    return fetchAPI(`/api/products/categories/${slug}/`);
+  },
 
   // GET /api/products/categories/{slug}/products/ - Productos por categoría
-  getProducts: async (slug) => fetchAPI(`/api/products/categories/${slug}/products/`),
+  getProducts: async (slug) => {
+    const data = await fetchAPI(`/api/products/categories/${slug}/products/`);
+    // Normalizar respuesta: si tiene "results", devolver eso; si es array, devolverlo directo
+    return data.results || data || [];
+  },
 };
 
 // ============================================
@@ -77,7 +100,9 @@ export const categoryAPI = {
 
 export const cartAPI = {
   // GET /api/cart/ - Obtener carrito del usuario
-  get: async () => fetchAPI('/api/cart/'),
+  get: async () => {
+    return fetchAPI('/api/cart/');
+  },
 
   // POST /api/cart/items/ - Agregar producto
   addItem: async (productId, quantity = 1) => {
@@ -102,10 +127,18 @@ export const cartAPI = {
   },
 
   // DELETE /api/cart/items/{id}/ - Eliminar item
-  removeItem: async (itemId) => fetchAPI(`/api/cart/items/${itemId}/`, { method: 'DELETE' }),
+  removeItem: async (itemId) => {
+    return fetchAPI(`/api/cart/items/${itemId}/`, {
+      method: 'DELETE',
+    });
+  },
 
   // DELETE /api/cart/clear/ - Vaciar carrito
-  clear: async () => fetchAPI('/api/cart/clear/', { method: 'DELETE' }),
+  clear: async () => {
+    return fetchAPI('/api/cart/clear/', {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Exportar URL base

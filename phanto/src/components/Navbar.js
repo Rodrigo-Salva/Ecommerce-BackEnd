@@ -2,19 +2,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../hooks/useCart';
-import { usePedidosEnEntrega } from '../hooks/usePedidosEnEntrega'; // <--- IMPORTA SOLO UNA VEZ
+import { useCart } from '../context/CartContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const { cart } = useCart();
-  const { enEntrega = [] } = usePedidosEnEntrega();  // Obtén los pedidos activos
+  const { getCartCount } = useCart();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Calcula cantidad de items en el carrito
-  const cartCount = cart?.items?.reduce((count, item) => count + (item.quantity || 0), 0) || 0;
+  const cartCount = getCartCount();
 
   const handleLogout = () => {
     logout();
@@ -49,10 +45,6 @@ const Navbar = () => {
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </Link>
 
-          <Link to="/historial" className="nav-link">
-            {enEntrega.length} pedidos en proceso de entrega
-          </Link>
-
           {user ? (
             <div className="user-menu">
               <button className="user-button">
@@ -60,7 +52,7 @@ const Navbar = () => {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                <span>{user.first_name || user.nombre}</span>
+                <span>{user.nombre}</span>
               </button>
               <div className="dropdown-menu">
                 <button onClick={handleLogout} className="dropdown-item">

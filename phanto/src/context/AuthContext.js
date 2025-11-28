@@ -15,85 +15,45 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Chequea si hay sesión activa al cargar la app
-    const fetchUser = async () => {
-      try {
-        const resp = await fetch('http://127.0.0.1:8000/api/users/me/', {
-          credentials: 'include',
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          setUser(data.user || data);
-          localStorage.setItem('user', JSON.stringify(data.user || data));
-        } else {
-          setUser(null);
-          localStorage.removeItem('user');
-        }
-      } catch {
-        setUser(null);
-        localStorage.removeItem('user');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
+    // Verificar si hay un usuario guardado en localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
   }, []);
 
-  // Login robusto: NO permitir datos vacíos ni llamada sin datos
-  const login = async (email, password) => {
-    if (!email || !password) {
-      return { success: false, error: 'Por favor completa todos los campos.' };
-    }
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/users/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
-      if (!response.ok) throw new Error('Credenciales inválidas');
-      const data = await response.json();
-      setUser(data.user || data);
-      localStorage.setItem('user', JSON.stringify(data.user || data));
-      return { success: true };
-    } catch (error) {
-      setUser(null);
-      localStorage.removeItem('user');
-      return { success: false, error: error.message };
-    }
+  const login = (email, password) => {
+    // Simulación de login (aquí iría la llamada a tu API)
+    const userData = {
+      id: 1,
+      nombre: 'Usuario Demo',
+      email: email,
+      avatar: null
+    };
+    
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    return { success: true };
   };
 
-  const register = async (username, email, password, password2, first_name, last_name) => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username, email, password, password2, first_name, last_name }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: JSON.stringify(errorData) };
-      }
-      const data = await response.json();
-      setUser(data.user);
-      return { success: true };
-    } catch (error) {
-      setUser(null);
-      return { success: false, error: 'Fallo de registro' };
-    }
+  const register = (nombre, email, password) => {
+    // Simulación de registro (aquí iría la llamada a tu API)
+    const userData = {
+      id: Date.now(),
+      nombre: nombre,
+      email: email,
+      avatar: null
+    };
+    
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    return { success: true };
   };
 
-  const logout = async () => {
+  const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    await fetch('http://127.0.0.1:8000/api/users/logout/', {
-      method: 'POST',
-      credentials: 'include',
-    });
   };
 
   const value = {
@@ -102,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user
   };
 
   return (

@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 
 from .models import Category, Brand, Material, Product, Review
 from .serializers import (
@@ -17,7 +19,7 @@ from .serializers import (
 from .filters import ProductFilter
 from .permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
 
-
+@extend_schema(tags=['Products'])
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de categorías
@@ -60,7 +62,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
 
-
+@extend_schema(tags=['Products'])
 class BrandViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de marcas
@@ -74,6 +76,7 @@ class BrandViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
 
 
+@extend_schema(tags=['Products'])
 class MaterialViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet solo lectura para materiales
@@ -84,6 +87,7 @@ class MaterialViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name']
 
 
+@extend_schema(tags=['Products'])
 class ProductViewSet(viewsets.ModelViewSet):
     """
     ViewSet completo para productos con filtros y búsqueda
@@ -186,6 +190,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema(tags=['Products'])
 class ReviewViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de reviews
