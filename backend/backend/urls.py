@@ -9,10 +9,9 @@ urlpatterns = [
     # Rutas de tus apps
     path('api/users/', include('applications.users.urls')),
     path('api/cart/', include('applications.cart.urls')),
-    path('api/orders/', include('applications.orders.urls')),    
+    path('api/orders/', include('applications.orders.urls')),
     path('api/products/', include('applications.products.urls')),
 
-    
     # Schema (archivo OpenAPI)
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
 

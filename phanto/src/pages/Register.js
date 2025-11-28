@@ -1,3 +1,4 @@
+// src/pages/Register.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +29,7 @@ const Register = () => {
     setError('');
     setLoading(true);
 
-    // Validaciones
+    // --- 1. Validaciones Frontend ---
     if (!formData.nombre || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Por favor completa todos los campos');
       setLoading(false);
@@ -53,16 +54,47 @@ const Register = () => {
       return;
     }
 
-    // Simular delay de red
-    setTimeout(() => {
-      const result = register(formData.nombre, formData.email, formData.password);
+    // --- 2. Preparar Datos para Django ---
+    
+    // Dividir "Nombre Completo" en Nombre y Apellido
+    const nombreCompleto = formData.nombre.trim();
+    const primerEspacio = nombreCompleto.indexOf(' ');
+    
+    let firstName = nombreCompleto;
+    let lastName = '';
+
+    if (primerEspacio > 0) {
+        firstName = nombreCompleto.substring(0, primerEspacio);
+        lastName = nombreCompleto.substring(primerEspacio + 1);
+    }
+
+    // Generar un username temporal basado en el email (único)
+    const usernameTemp = formData.email.split('@')[0] + Math.floor(Math.random() * 10000);
+
+    const dataToSend = {
+        username: usernameTemp,
+        email: formData.email,
+        password: formData.password,
+        password2: formData.confirmPassword,
+        first_name: firstName,
+        last_name: lastName || 'Usuario' // Apellido por defecto si no pone nada
+    };
+
+    // --- 3. Enviar al Backend ---
+    try {
+      const result = await register(dataToSend);
+      
       if (result.success) {
-        navigate('/');
+        navigate('/'); // Redirigir al inicio si todo sale bien
       } else {
-        setError('Error al crear la cuenta');
+        setError(result.error || 'Error al crear la cuenta');
       }
+    } catch (err) {
+      console.error(err);
+      setError('Error de conexión. Intenta nuevamente.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -75,7 +107,7 @@ const Register = () => {
             <div className="register-benefits">
               <div className="benefit-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
+                  ircle cx="12" cy="12" r="10"/
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
                 <div>
@@ -87,8 +119,8 @@ const Register = () => {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 7h-9"/>
                   <path d="M14 17H5"/>
-                  <circle cx="17" cy="17" r="3"/>
-                  <circle cx="7" cy="7" r="3"/>
+                  ircle cx="17" cy="17" r="3"/
+                  ircle cx="7" cy="7" r="3"/
                 </svg>
                 <div>
                   <h4>Envío Prioritario</h4>
@@ -98,7 +130,7 @@ const Register = () => {
               <div className="benefit-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="8.5" cy="7" r="4"/>
+                  ircle cx="8.5" cy="7" r="4"/
                   <line x1="20" y1="8" x2="20" y2="14"/>
                   <line x1="23" y1="11" x2="17" y2="11"/>
                 </svg>
@@ -124,7 +156,7 @@ const Register = () => {
             {error && (
               <div className="error-message">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
+                  ircle cx="12" cy="12" r="10"/
                   <line x1="12" y1="8" x2="12" y2="12"/>
                   <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
@@ -138,7 +170,7 @@ const Register = () => {
                 <div className="input-wrapper">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
+                    ircle cx="12" cy="7" r="4"/
                   </svg>
                   <input
                     type="text"

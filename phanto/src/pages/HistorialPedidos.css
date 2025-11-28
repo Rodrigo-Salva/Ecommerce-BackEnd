@@ -1,0 +1,57 @@
+.historial-page {
+  padding: 40px 0;
+}
+
+.historial-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.historial-empty {
+  color: #6b7280;
+}
+
+.historial-table-wrapper {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 20px 24px;
+}
+
+.historial-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.historial-tabla th,
+.historial-tabla td {
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.historial-tabla thead {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.historial-tabla tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.estado {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.estado-confirmed {
+  color: #15803d;
+}
+
+.estado-pending {
+  color: #d97706;
+}
+
+.estado-cancelled {
+  color: #b91c1c;
+}

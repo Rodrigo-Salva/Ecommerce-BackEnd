@@ -1,8 +1,10 @@
 from rest_framework import serializers
 from decimal import Decimal
 from django.utils import timezone
+from django.contrib.auth.models import User
 from .models import Order, OrderItem, OrderStatusHistory, Coupon
 from applications.products.models import Product
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,6 +15,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'subtotal']
 
+
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderStatusHistory
@@ -20,6 +23,7 @@ class OrderStatusHistorySerializer(serializers.ModelSerializer):
             'id', 'status', 'comment', 'created_by', 'created_at'
         ]
         read_only_fields = ['created_by', 'created_at']
+
 
 class OrderListSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
@@ -30,12 +34,14 @@ class OrderListSerializer(serializers.ModelSerializer):
             'created_at', 'items'
         ]
 
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     history = OrderStatusHistorySerializer(many=True, read_only=True)
     class Meta:
         model = Order
         fields = '__all__'
+
 
 class OrderCreateItemSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
@@ -52,9 +58,11 @@ class OrderCreateItemSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Stock insuficiente ({product.stock})")
         return data
 
+
 class OrderCreateSerializer(serializers.ModelSerializer):
     items = OrderCreateItemSerializer(many=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    
     class Meta:
         model = Order
         fields = [
@@ -69,10 +77,25 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        user = self.context['request'].user
+        # LÓGICA CORREGIDA PARA USUARIO INVITADO
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+        else:
+            # Crear o recuperar usuario invitado
+            user, _ = User.objects.get_or_create(
+                username='cliente_invitado',
+                defaults={
+                    'email': 'invitado@tienda.com',
+                    'first_name': 'Cliente',
+                    'last_name': 'Invitado'
+                }
+            )
+
         items_data = validated_data.pop('items')
         coupon_code = validated_data.pop('coupon_code', None)
 
+        # Limpieza de campos no permitidos en create directo
         validated_data.pop('user', None)
         validated_data.pop('status', None)
         validated_data.pop('is_paid', None)
@@ -80,8 +103,11 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 
         subtotal = Decimal('0')
         for item in items_data:
-            product = Product.objects.get(id=item['product_id'])
-            subtotal += product.final_price * item['quantity']
+            try:
+                product = Product.objects.get(id=item['product_id'])
+                subtotal += product.final_price * item['quantity']
+            except Product.DoesNotExist:
+                continue
 
         shipping_cost = Decimal('10')
         tax = subtotal * Decimal('0.18')
@@ -102,7 +128,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         total = subtotal + shipping_cost + tax - discount
 
         order = Order.objects.create(
-            user=user,
+            user=user,  # Usuario real o invitado
             subtotal=subtotal,
             shipping_cost=shipping_cost,
             tax=tax,
@@ -113,23 +139,30 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             paid_at=timezone.now(),
             **validated_data,
         )
+
         for item in items_data:
-            product = Product.objects.get(id=item['product_id'])
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                product_name=product.name,
-                product_sku=getattr(product, 'sku', ''),
-                product_price=product.final_price,
-                quantity=item['quantity'],
-                subtotal=product.final_price * item['quantity'],
-            )
-            product.stock -= item['quantity']
-            product.save()
+            try:
+                product = Product.objects.get(id=item['product_id'])
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    product_name=product.name,
+                    product_sku=getattr(product, 'sku', ''),
+                    product_price=product.final_price,
+                    quantity=item['quantity'],
+                    subtotal=product.final_price * item['quantity'],
+                )
+                product.stock -= item['quantity']
+                product.save()
+            except Product.DoesNotExist:
+                continue
+
         if applied_coupon:
             applied_coupon.used_count += 1
             applied_coupon.save()
+            
         return order
+
 
 class CouponSerializer(serializers.ModelSerializer):
     class Meta:

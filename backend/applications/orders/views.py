@@ -41,7 +41,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         return OrderListSerializer
 
     def perform_create(self, serializer):
-        serializer.save(status='confirmed', is_paid=True, paid_at=timezone.now())
+        # Asignar usuario automáticamente al crear desde el ViewSet
+        serializer.save(
+            user=self.request.user,
+            status='confirmed', 
+            is_paid=True, 
+            paid_at=timezone.now()
+        )
 
     @action(detail=True, methods=['put'], url_path='cancel')
     def cancel_order(self, request, order_number=None):
@@ -100,7 +106,7 @@ def validate_coupon(request):
 
 @extend_schema(tags=['Payments'])
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def create_payment_intent(request):
     """
     Crea un PaymentIntent de Stripe.
@@ -108,14 +114,21 @@ def create_payment_intent(request):
     """
     try:
         amount = int(request.data.get('amount'))
+        
+        # Definir metadata según si está logueado o no
+        metadata = {}
+        if request.user.is_authenticated:
+            metadata["user_id"] = request.user.id
+            metadata["username"] = request.user.username
+        else:
+            metadata["user_id"] = "guest"
+            metadata["username"] = "guest"
+
         intent = stripe.PaymentIntent.create(
             amount=amount,
-            currency='pen',
+            currency='pen', # Asegúrate que coincida con tu cuenta Stripe (pen/usd)
             automatic_payment_methods={"enabled": True},
-            metadata={
-                "user_id": request.user.id,
-                "username": request.user.username,
-            },
+            metadata=metadata,
         )
         return Response(
             {"clientSecret": intent.client_secret, "paymentIntentId": intent.id},
@@ -127,7 +140,7 @@ def create_payment_intent(request):
 
 @extend_schema(tags=['Payments'])
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny]) 
 def confirm_payment(request):
     """
     Confirma el pago y crea la orden.
@@ -141,6 +154,7 @@ def confirm_payment(request):
         payment_intent_id = request.data.get('payment_intent_id')
         order_data = request.data.get('order', {})
 
+        # Verificar estado en Stripe
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
 
         if intent.status != 'succeeded':
@@ -151,8 +165,14 @@ def confirm_payment(request):
         order_data['payment_intent_id'] = payment_intent_id
 
         serializer = OrderCreateSerializer(data=order_data, context={'request': request})
+        
         if serializer.is_valid():
-            order = serializer.save()
+            # === CORRECCIÓN CLAVE: ASIGNAR USUARIO SI EXISTE ===
+            user_to_save = request.user if request.user.is_authenticated else None
+            
+            # Guardar la orden pasando el usuario explícitamente
+            order = serializer.save(user=user_to_save)
+            
             return Response(
                 {
                     "message": "Orden creada exitosamente",

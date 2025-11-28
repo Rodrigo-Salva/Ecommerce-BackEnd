@@ -7,9 +7,9 @@ import './Carrito.css';
 
 const Carrito = () => {
   const queryClient = useQueryClient();
-  const { 
-    cart, 
-    isLoading, 
+  const {
+    cart,
+    isLoading,
     error,
     updateItem,
     removeItem,
@@ -30,7 +30,7 @@ const Carrito = () => {
 
   const handleCantidadChange = (itemId, currentQuantity, change) => {
     const newQuantity = currentQuantity + change;
-    
+
     if (newQuantity <= 0) {
       removeItem(itemId);
     } else {
@@ -86,9 +86,9 @@ const Carrito = () => {
         <div className="container">
           <div className="vacio-content fade-in">
             <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="9" cy="21" r="1"/>
-              <circle cx="20" cy="21" r="1"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
             <h2>Tu carrito está vacío</h2>
             <p>Agrega productos increíbles para comenzar tu compra</p>
@@ -106,14 +106,14 @@ const Carrito = () => {
       <div className="container">
         <div className="carrito-header">
           <h1 className="carrito-titulo">Carrito de Compras</h1>
-          <button 
-            className="btn-limpiar" 
+          <button
+            className="btn-limpiar"
             onClick={handleClearCart}
             disabled={isClearingCart}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
             {isClearingCart ? 'Vaciando...' : 'Vaciar Carrito'}
           </button>
@@ -135,7 +135,7 @@ const Carrito = () => {
                     onMouseEnter={() => handleProductHover(producto.slug)}
                   >
                     {producto.primary_image ? (
-                      <img 
+                      <img
                         src={`${API_URL}${producto.primary_image}`}
                         alt={producto.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -143,9 +143,9 @@ const Carrito = () => {
                     ) : (
                       <div className="imagen-placeholder-carrito">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                          <rect x="3" y="3" width="18" height="18" rx="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <path d="M21 15l-5-5L5 21"/>
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
                         </svg>
                       </div>
                     )}
@@ -192,8 +192,8 @@ const Carrito = () => {
                     title="Eliminar producto"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/>
-                      <line x1="6" y1="6" x2="18" y2="18"/>
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
                 </div>
@@ -218,7 +218,7 @@ const Carrito = () => {
               {totalPrice >= 1000 && (
                 <div className="envio-gratis-badge">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12"/>
+                    <polyline points="20 6 9 17 4 12" />
                   </svg>
                   ¡Envío gratis aplicado!
                 </div>
@@ -230,13 +230,14 @@ const Carrito = () => {
               </div>
             </div>
 
-            <button className="btn-finalizar">
+            <Link to="/checkout" className="btn-finalizar">
               Proceder al Pago
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14"/>
-                <path d="M12 5l7 7-7 7"/>
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
               </svg>
-            </button>
+            </Link>
+
 
             <Link to="/" className="btn-continuar">
               Continuar Comprando
@@ -245,22 +246,22 @@ const Carrito = () => {
             <div className="garantias">
               <div className="garantia-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                  <line x1="1" y1="10" x2="23" y2="10"/>
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                  <line x1="1" y1="10" x2="23" y2="10" />
                 </svg>
                 <span>Pago seguro</span>
               </div>
               <div className="garantia-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
                 <span>Garantía de 2 años</span>
               </div>
               <div className="garantia-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 <span>Devolución gratis</span>
               </div>

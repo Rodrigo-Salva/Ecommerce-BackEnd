@@ -1,3 +1,4 @@
+// src/pages/Login.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +27,7 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    // Validaciones básicas
+    // Validaciones básicas en el frontend
     if (!formData.email || !formData.password) {
       setError('Por favor completa todos los campos');
       setLoading(false);
@@ -39,16 +40,23 @@ const Login = () => {
       return;
     }
 
-    // Simular delay de red
-    setTimeout(() => {
-      const result = login(formData.email, formData.password);
+    try {
+      // Llamada al LOGIN REAL (asíncrona)
+      // Nota: AuthContext se encargará de enviar 'username' si el backend lo requiere
+      const result = await login(formData.email, formData.password);
+      
       if (result.success) {
-        navigate('/');
+        navigate('/'); // Redirigir al inicio si todo salió bien
       } else {
-        setError('Email o contraseña incorrectos');
+        // Mostrar error que viene del backend (ej: "Credenciales inválidas")
+        setError(result.error || 'Email o contraseña incorrectos');
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError('Ocurrió un error inesperado. Intenta nuevamente.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -94,7 +102,7 @@ const Login = () => {
             {error && (
               <div className="error-message">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
+                  ircle cx="12" cy="12" r="10"/
                   <line x1="12" y1="8" x2="12" y2="12"/>
                   <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
