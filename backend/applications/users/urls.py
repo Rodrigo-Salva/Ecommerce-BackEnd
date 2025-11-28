@@ -16,8 +16,9 @@ router = DefaultRouter()
 router.register('addresses', AddressViewSet, basename='address')
 
 urlpatterns = [
-    # Autenticación JWT Personalizada
-    path('login/', LoginAPIView.as_view(), name='user-login'),  # <--- ESTA ES LA NUEVA RUTA
+    # Autenticación JWT Personalizada (ambos endpoints funcionan)
+    path('login/', LoginAPIView.as_view(), name='user-login'),  # Para frontend
+    path('token/', LoginAPIView.as_view(), name='user-token'),  # Para compatibilidad SimpleJWT
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # Registro

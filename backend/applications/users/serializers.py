@@ -1,10 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import UserProfile, Address
-from .validators import validate_age
+from .validators import validate_age, validate_password_simple
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -62,7 +61,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password], style={'input_type': 'password'})
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password_simple], style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirmar contraseña")
     email = serializers.EmailField(required=True)
     
@@ -189,7 +188,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
-    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password], style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password_simple], style={'input_type': 'password'})
     new_password2 = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, label="Confirmar nueva contraseña")
     
     def validate_old_password(self, value):
@@ -221,7 +220,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password], style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password_simple], style={'input_type': 'password'})
     new_password2 = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
     
     def validate(self, attrs):
