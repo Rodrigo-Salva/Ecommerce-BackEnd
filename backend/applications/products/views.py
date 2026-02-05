@@ -4,9 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Prefetch
 from drf_spectacular.utils import extend_schema, extend_schema_view
-
 
 from .models import Category, Brand, Material, Product, Review
 from .serializers import (
@@ -18,6 +17,7 @@ from .serializers import (
 )
 from .filters import ProductFilter
 from .permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
+
 
 @extend_schema(tags=['Products'])
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -62,6 +62,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
 
+
 @extend_schema(tags=['Products'])
 class BrandViewSet(viewsets.ModelViewSet):
     """
@@ -92,11 +93,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
     ViewSet completo para productos con filtros y búsqueda
     """
-    queryset = Product.objects.filter(is_active=True).select_related(
-        'category', 'brand'
-    ).prefetch_related(
-        'materials', 'images', 'specifications', 'reviews'
-    )
     permission_classes = [IsAdminOrReadOnly]
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -105,10 +101,36 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ['price', 'created_at', 'name', 'views_count']
     ordering = ['-created_at']
     
+    def get_queryset(self):
+        """
+        Optimiza el queryset basado en la acción
+        """
+        queryset = Product.objects.filter(is_active=True)
+        
+        if self.action == 'retrieve':
+            queryset = queryset.select_related(
+                'category', 'brand'
+            ).prefetch_related(
+                'materials',
+                'images',
+                'specifications',
+                Prefetch('reviews', queryset=Review.objects.filter(is_approved=True))
+            )
+        elif self.action == 'list':
+            queryset = queryset.select_related(
+                'category', 'brand'
+            ).prefetch_related('images', 'materials')
+        else:
+            queryset = queryset.select_related(
+                'category', 'brand'
+            ).prefetch_related('materials', 'images')
+        
+        return queryset
+    
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProductDetailSerializer
-        elif self.action in ['create']:
+        elif self.action == 'create':
             return ProductCreateSerializer
         elif self.action in ['update', 'partial_update']:
             return ProductUpdateSerializer
@@ -185,7 +207,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         GET /api/products/{slug}/reviews/
         """
         product = self.get_object()
-        reviews = product.reviews.filter(is_approved=True).order_by('-created_at')
+        reviews = product.reviews.filter(is_approved=True).select_related('user').order_by('-created_at')
         serializer = ReviewSerializer(reviews, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -195,7 +217,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de reviews
     """
-    queryset = Review.objects.filter(is_approved=True)
+    queryset = Review.objects.filter(is_approved=True).select_related('user', 'product')
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrAdmin]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'rating']
@@ -208,9 +230,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        product_slug = self.request.query_params.get('product', None)
+        product_slug = self.request.query_params.get('product')
+        
         if product_slug:
             queryset = queryset.filter(product__slug=product_slug)
+        
         return queryset
     
     def perform_create(self, serializer):
@@ -220,7 +244,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         """
         serializer.save(
             user=self.request.user,
-            is_verified_purchase=False  # Cambiar cuando se integre con orders
+            is_verified_purchase=False
         )
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
@@ -229,6 +253,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         Obtener reviews del usuario autenticado
         GET /api/products/reviews/my-reviews/
         """
-        reviews = Review.objects.filter(user=request.user)
+        reviews = Review.objects.filter(user=request.user).select_related('product')
         serializer = ReviewSerializer(reviews, many=True, context={'request': request})
         return Response(serializer.data)
